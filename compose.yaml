@@ -1,0 +1,9 @@
+services:
+  port-sync:
+    build: .
+    container_name: port-sync
+    restart: unless-stopped
+    environment:
+      - APP_SYNC_FREQUENCY_MS=60000
+      - APP_GLUETUN_BASE_URL=http://10.25.25.32:8000
+      - APP_QBITTORRENT_BASE_URL=http://10.25.25.32:8081

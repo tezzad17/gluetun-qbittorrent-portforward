@@ -1,5 +1,7 @@
 package com.tezzad.vpnscheduler.service;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +32,9 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
     private String qbName;
     @Value("${app.qbittorrent.base-url}")
     private String qbUrl;
+
+    @Value("${app.slack.webhook-url}")
+    private String slackUrl;
 
     public SyncLogic(DockerService dockerService, ObjectMapper objectMapper) {
         this.dockerService = dockerService;
@@ -72,6 +77,7 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
             log.info("Ports match ({}). No action needed.", currentQbPort);
         } else {
             log.info("Port Mismatch! Updating qBittorrent to Gluetun port {}", gluetunPort);
+            sendSlackNotification("Port Mismatch! Updating qBittorrent to Gluetun port " + gluetunPort);
             updateQbitPort(gluetunPort);
 
             Integer newPort = getQbitPort();
@@ -117,6 +123,7 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
             return response;
         } catch (Exception e) {
             log.error("Error fetching public IP: {}", e.getMessage());
+            sendSlackNotification("Error fetching public IP: " + e.getMessage());
             return null;
         }
     }
@@ -141,6 +148,7 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
             }
         } catch (Exception e) {
             log.error("Error fetching Gluetun port: {}", e.getMessage());
+            sendSlackNotification("Error fetching Gluetun port: " + e.getMessage());
         }
         return null;
     }
@@ -155,6 +163,7 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
                     .asInt();
         } catch (Exception e) {
             log.error("Error fetching qBittorrent port: {}", e.getMessage());
+            sendSlackNotification("Error fetching qBittorrent port: " + e.getMessage());
             return null;
         }
     }
@@ -173,9 +182,28 @@ public class SyncLogic { // Removed "implements CommandLineRunner"
                     .toBodilessEntity();
         } catch (Exception e) {
             log.error("Error updating qBittorrent port: {}", e.getMessage());
+            sendSlackNotification("Error updating qBittorrent port: " + e.getMessage());
         }
     }
 
     private record PortPayload(int listen_port) {
+    }
+
+    private void sendSlackNotification(String message) {
+        try {
+
+            Map<String, String> payload = Map.of(
+                "text", message
+            );
+
+            restClient.post()
+                    .uri(slackUrl)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(payload)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.error("Error sending Slack notification: {}", e.getMessage());
+        }
     }
 }
