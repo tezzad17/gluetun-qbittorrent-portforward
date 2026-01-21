@@ -69,7 +69,7 @@ public class SyncLogicService {
             return;
         }
         log.info("External IP is {} (VPN UP)", externalIp);
-        slackMessageService.sendSlackNotification("External IP is " + externalIp + " (VPN UP)");
+        //slackMessageService.sendSlackNotification("External IP is " + externalIp + " (VPN UP)");
 
         // Get Ports
         Integer gluetunPort = getGluetunPort();
@@ -80,6 +80,7 @@ public class SyncLogicService {
         // Validate Ports
         if (gluetunPort == null || currentQbPort == null) {
             log.error("Could not retrieve ports. Aborting sync.");
+            slackMessageService.sendSlackNotification("Could not retrieve ports. Aborting sync.");
             return;
         }
 
